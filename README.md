@@ -11,47 +11,42 @@ Each signed-in user can only see their own notes.
 4. Create a file named `.env` beside `package.json`, using `.env.example` as a guide.
 
 Only use the public **anon** key in `.env`. Never put a Supabase service-role key
-in this website.
+in this website — anything in a `VITE_`-prefixed variable is shipped to the browser.
 
 ## Run it on your computer
 
-Open two terminals:
-
 ```bash
-# Website
-npm run dev
-
-# Notes server
-cd server
+npm install
 npm run dev
 ```
 
+That's the whole app — Supabase handles accounts and stores the notes, so there
+is no separate backend server to run.
+
+## Reminder notifications (phone push)
+
+Notes with a reminder time can push a notification to the user's phone, even
+when the site is closed. This uses Web Push (a PWA service worker) plus a
+scheduled Supabase Edge Function. It needs a few one-time setup steps —
+see [`supabase/README-reminders.md`](supabase/README-reminders.md).
+
 ## Put it online with Render
 
+The app is a static site (Supabase is the backend), so deploy it as a Render
+**Static Site**:
+
 1. Put this project in a GitHub repository.
-2. In Render, create a **Web Service** from that GitHub repository.
-3. Use these commands in Render:
+2. In Render, create a **Static Site** from that GitHub repository (or let it read
+   the included `render.yaml`).
+3. Build command: `npm install && npm run build`
+4. Publish directory: `dist`
+5. Under **Environment**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+   Vite reads these at build time, so redeploy after changing them.
 
-   - Build command: `npm install && npm --prefix server install && npm run build`
-   - Start command: `npm --prefix server start`
+Render gives you a public address for the app.
 
-Render gives you a public address for the complete app.
+## Tech notes
 
-> This first learning version stores notes in a small file. On free hosting,
-> that file can be reset when the server restarts. Before sharing it widely,
-> replace it with a cloud database such as Supabase.
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+This project uses [Vite](https://vite.dev) with the
+[@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) plugin for
+React with Fast Refresh, plus a minimal ESLint setup.

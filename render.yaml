@@ -1,8 +1,16 @@
 services:
   - type: web
     name: my-notes
-    runtime: node
-    buildCommand: npm install && npm --prefix server install && npm run build
-    startCommand: npm --prefix server start
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
     plan: free
     autoDeploy: true
+    # Set these in the Render dashboard (Environment):
+    #   VITE_SUPABASE_URL
+    #   VITE_SUPABASE_ANON_KEY
+    # Vite reads them at build time and bakes them into the static bundle.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
