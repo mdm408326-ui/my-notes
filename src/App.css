@@ -15,6 +15,20 @@ body {
   background: radial-gradient(circle at 85% 5%, #eee5ff 0, transparent 26rem), radial-gradient(circle at 0 50%, #e1f4ec 0, transparent 30rem), #f8f7f3;
 }
 
+.setup-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 10% 10%, #e1f4ec 0, transparent 28rem), #f8f7f3; }
+.setup-card, .auth-card { width: min(100%, 430px); padding: 38px; border: 1px solid rgba(32, 37, 44, 0.1); border-radius: 24px; background: #fff; box-shadow: 0 18px 45px rgba(49, 42, 31, 0.1); }
+.setup-card h1, .auth-card h1 { margin: 20px 0 10px; font-family: Georgia, "Times New Roman", serif; font-size: 32px; letter-spacing: -1px; }
+.setup-card p, .auth-card > p { color: #656863; line-height: 1.55; }
+.auth-card { display: grid; gap: 14px; }
+.auth-card input { width: 100%; padding: 13px 14px; border: 1px solid #deded6; border-radius: 11px; font: inherit; }
+.text-button, .signout-button { border: 0; background: transparent; color: #765c96; cursor: pointer; font-weight: 700; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.user-email { color: #6d706d; font-size: 13px; }
+.reminder-strip { display: flex; gap: 11px; align-items: center; margin: 0 0 24px; padding: 14px 16px; border-radius: 14px; background: #f0eaff; color: #4d2b70; }
+.reminder-strip p { margin: 0; }
+.reminder-field { display: flex; align-items: center; gap: 12px; color: #656863; font-size: 14px; }
+.reminder-field input { padding: 9px; border: 1px solid #deded6; border-radius: 8px; font: inherit; }
+
 .header {
   background: rgba(255, 255, 255, 0.76);
   padding: 20px 8%;
@@ -199,6 +213,9 @@ body {
     padding: 10px 14px;
     font-size: 13px;
   }
+
+  .user-email { display: none; }
+  .header-actions { gap: 6px; }
 
   .content {
     width: 90%;

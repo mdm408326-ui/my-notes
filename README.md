@@ -1,7 +1,17 @@
 # My Notes
 
-A small React notes app with an Express backend. Notes are saved by the server
-instead of disappearing when the page refreshes.
+A React reminder-notes app with Supabase authentication and a SQL database.
+Each signed-in user can only see their own notes.
+
+## Set up Supabase (free)
+
+1. Create a free project at [Supabase](https://supabase.com/dashboard).
+2. In **SQL Editor**, run the contents of `supabase/schema.sql`.
+3. In **Project Settings → API**, copy the Project URL and the public anon key.
+4. Create a file named `.env` beside `package.json`, using `.env.example` as a guide.
+
+Only use the public **anon** key in `.env`. Never put a Supabase service-role key
+in this website.
 
 ## Run it on your computer
 
