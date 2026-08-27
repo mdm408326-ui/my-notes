@@ -26,7 +26,7 @@ body {
 .user-email { color: #6d706d; font-size: 13px; }
 .notify-button { border: 1px solid #d7cfe4; background: #fff; color: #4d2b70; padding: 11px 16px; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; }
 .notify-button:hover { background: #f4f0fa; }
-.notify-status { color: #3f8a52; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.notify-status { border: 0; background: transparent; color: #3f8a52; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .reminder-strip { display: flex; gap: 11px; align-items: center; margin: 0 0 24px; padding: 14px 16px; border-radius: 14px; background: #f0eaff; color: #4d2b70; }
 .reminder-strip p { margin: 0; }
 .reminder-field { display: flex; align-items: center; gap: 12px; color: #656863; font-size: 14px; }

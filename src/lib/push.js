@@ -48,26 +48,36 @@ export async function enablePushNotifications() {
     throw new Error('You did not allow notifications, so reminders can’t reach this device.')
   }
 
-  const registration = await navigator.serviceWorker.ready
-  let subscription = await registration.pushManager.getSubscription()
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    })
+  let subscription
+  try {
+    const registration = await navigator.serviceWorker.ready
+    subscription = await registration.pushManager.getSubscription()
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    }
+  } catch (err) {
+    console.error('[push] subscribe failed:', err)
+    throw new Error(`Subscribe step failed: ${err?.message || err}`, { cause: err })
   }
 
   const json = subscription.toJSON()
+  const { data: userData } = await supabase.auth.getUser()
   const { error } = await supabase.from('push_subscriptions').upsert(
     {
-      owner_id: (await supabase.auth.getUser()).data.user?.id,
+      owner_id: userData.user?.id,
       endpoint: json.endpoint,
       p256dh: json.keys.p256dh,
       auth: json.keys.auth,
     },
     { onConflict: 'endpoint' },
   )
-  if (error) throw new Error('Could not save your notification settings. Please try again.')
+  if (error) {
+    console.error('[push] save failed:', error)
+    throw new Error(`Save step failed: ${error.message}`)
+  }
 
   return true
 }
