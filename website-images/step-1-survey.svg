@@ -1,0 +1,10 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Step 1: Free survey and fixed quote">
+  <circle cx="60" cy="60" r="54" fill="#FFF1E8"/>
+  <rect x="38" y="30" width="40" height="52" rx="6" fill="#fff" stroke="#0B1838" stroke-width="4"/>
+  <rect x="50" y="24" width="16" height="10" rx="3" fill="#F26522"/>
+  <path d="M46 46h20 M46 56h20 M46 66h12" stroke="#0B1838" stroke-width="4" stroke-linecap="round"/>
+  <!-- magnifier -->
+  <circle cx="76" cy="74" r="15" fill="#fff" stroke="#F26522" stroke-width="5"/>
+  <path d="M87 85 l10 10" stroke="#F26522" stroke-width="6" stroke-linecap="round"/>
+  <path d="M70 74 l4 4 8-9" stroke="#0B1838" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

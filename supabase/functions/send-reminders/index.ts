@@ -1,11 +1,10 @@
-// Supabase Edge Function: send-reminders
-// Runs on a schedule (see supabase/README-reminders.md). Finds notes whose
-// reminder time has arrived and have not been notified yet, then sends a Web
-// Push notification to every device the note's owner has subscribed.
+// Supabase Edge Function: reminder + surprise delivery.
+// Runs every minute (via cron). Sends push notifications for:
+//   1. Personal note reminders whose time has arrived.
+//   2. Surprise notes whose delivery date has arrived (to the recipient).
 //
-// Deploy:  supabase functions deploy send-reminders
 // Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
-//          (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically)
+// (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.)
 
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
@@ -18,61 +17,76 @@ const vapidSubject = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:reminders@example.
 
 webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
 
-Deno.serve(async () => {
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
-  const nowIso = new Date().toISOString()
+const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-  // Reminders that are due and have not been pushed yet.
-  const { data: dueNotes, error } = await supabase
+// Sends `payload` to every device belonging to `userId`. Cleans up dead subs.
+async function pushToUser(userId: string, payload: string): Promise<number> {
+  const { data: subs } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('owner_id', userId)
+
+  let count = 0
+  for (const sub of subs ?? []) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload,
+      )
+      count += 1
+    } catch (err) {
+      const statusCode = (err as { statusCode?: number })?.statusCode
+      if (statusCode === 404 || statusCode === 410) {
+        await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+      }
+    }
+  }
+  return count
+}
+
+Deno.serve(async () => {
+  const nowIso = new Date().toISOString()
+  const today = nowIso.slice(0, 10)
+  let sent = 0
+
+  // 1. Personal reminders that are due.
+  const { data: dueNotes } = await supabase
     .from('notes')
-    .select('id, title, owner_id, reminder_at')
+    .select('id, title, owner_id')
     .not('reminder_at', 'is', null)
     .lte('reminder_at', nowIso)
     .is('notified_at', null)
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
-  let sent = 0
   for (const note of dueNotes ?? []) {
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('owner_id', note.owner_id)
-
-    const payload = JSON.stringify({
-      title: 'Reminder',
-      body: note.title,
-      tag: `note-${note.id}`,
-      url: '/',
-    })
-
-    for (const sub of subs ?? []) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        )
-        sent += 1
-      } catch (err) {
-        // 404 / 410 means the browser dropped the subscription — remove it.
-        const statusCode = (err as { statusCode?: number })?.statusCode
-        if (statusCode === 404 || statusCode === 410) {
-          await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
-        }
-      }
-    }
-
-    // Mark done even if there were no devices, so we don't re-scan it forever.
+    sent += await pushToUser(
+      note.owner_id,
+      JSON.stringify({ title: 'Reminder', body: note.title, tag: `note-${note.id}`, url: '/' }),
+    )
     await supabase.from('notes').update({ notified_at: nowIso }).eq('id', note.id)
   }
 
-  return new Response(JSON.stringify({ due: dueNotes?.length ?? 0, sent }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  })
+  // 2. Surprise notes whose delivery date has arrived.
+  const { data: dueSurprises } = await supabase
+    .from('surprise_notes')
+    .select('id, title, message, sender_username, recipient_id')
+    .lte('deliver_on', today)
+    .is('delivered_at', null)
+
+  for (const s of dueSurprises ?? []) {
+    sent += await pushToUser(
+      s.recipient_id,
+      JSON.stringify({
+        title: `🎁 A surprise from @${s.sender_username}`,
+        body: s.title || s.message || 'Open to see your surprise!',
+        tag: `surprise-${s.id}`,
+        url: '/',
+      }),
+    )
+    await supabase.from('surprise_notes').update({ delivered_at: nowIso }).eq('id', s.id)
+  }
+
+  return new Response(
+    JSON.stringify({ reminders: dueNotes?.length ?? 0, surprises: dueSurprises?.length ?? 0, sent }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  )
 })
