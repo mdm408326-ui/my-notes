@@ -49,7 +49,10 @@ export async function signInWithUsername(username, password) {
 
 // Loads the signed-in user's profile row (their username).
 export async function loadMyProfile() {
-  const { data, error } = await supabase.from('profiles').select('id, username').maybeSingle()
+  const { data: userData } = await supabase.auth.getUser()
+  const uid = userData.user?.id
+  if (!uid) return null
+  const { data, error } = await supabase.from('profiles').select('id, username').eq('id', uid).maybeSingle()
   if (error) return null
   return data
 }
