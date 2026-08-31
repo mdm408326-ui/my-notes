@@ -27,3 +27,6 @@ server/data/notes.json
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase CLI temp
+supabase/.temp/
