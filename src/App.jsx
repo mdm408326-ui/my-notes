@@ -4,9 +4,11 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { enablePushNotifications, notificationPermission, pushSupported, registerServiceWorker } from './lib/push'
 import { loadMyProfile, signInWithUsername, signUpWithUsername } from './lib/auth'
 import { cancelSurprise, loadSurprises, sendSurprise } from './lib/surprises'
+import { loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
 
 const formatReminder = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const formatDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+const formatTime = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
 function App() {
@@ -31,13 +33,38 @@ function App() {
   const [surprise, setSurprise] = useState({ to: '', title: '', message: '', deliverOn: '' })
   const [isSending, setIsSending] = useState(false)
 
+  // Messages
+  const [messages, setMessages] = useState([])
+  const [activeConvo, setActiveConvo] = useState(null) // other user's id
+  const [newConvo, setNewConvo] = useState('')
+  const [draft, setDraft] = useState('')
+
   // Auth form
   const [authMode, setAuthMode] = useState('login')
   const [authForm, setAuthForm] = useState({ username: '', password: '' })
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
+  const myId = session?.user?.id
   const upcomingNotes = useMemo(() => notes.filter((n) => n.reminder_at && new Date(n.reminder_at) > new Date()).sort((a, b) => new Date(a.reminder_at) - new Date(b.reminder_at)), [notes])
   const todaysSurprises = useMemo(() => received.filter((s) => s.deliver_on === todayStr()), [received])
+
+  // Group messages into conversations by the other person.
+  const conversations = useMemo(() => {
+    const map = new Map()
+    for (const m of messages) {
+      const other = m.sender_id === myId
+        ? { id: m.recipient_id, username: m.recipient_username }
+        : { id: m.sender_id, username: m.sender_username }
+      const convo = map.get(other.id) || { ...other, last: null, unread: 0, messages: [] }
+      convo.messages.push(m)
+      convo.last = m
+      if (m.recipient_id === myId && !m.read_at) convo.unread += 1
+      map.set(other.id, convo)
+    }
+    return [...map.values()].sort((a, b) => new Date(b.last.created_at) - new Date(a.last.created_at))
+  }, [messages, myId])
+  const totalUnread = useMemo(() => conversations.reduce((sum, c) => sum + c.unread, 0), [conversations])
+  const activeThread = useMemo(() => conversations.find((c) => c.id === activeConvo) || null, [conversations, activeConvo])
   const resetEditor = () => { setTitle(''); setContent(''); setReminderAt(''); setShowEditor(false) }
 
   const enableNotifications = async () => {
@@ -74,12 +101,12 @@ function App() {
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next)
-      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setIsLoading(false) }
+      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setMessages([]); setActiveConvo(null); setIsLoading(false) }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  // Once signed in, load the profile, notes, and surprises.
+  // Once signed in, load the profile, notes, surprises, and messages.
   useEffect(() => {
     if (!session) return undefined
     let active = true
@@ -88,20 +115,31 @@ function App() {
       const myProfile = await loadMyProfile()
       if (!active) return
       setProfile(myProfile)
-      const [notesRes, surprisesRes] = await Promise.all([
+      const [notesRes, surprisesRes, msgs] = await Promise.all([
         supabase.from('notes').select('*').order('created_at', { ascending: false }),
         loadSurprises(session.user.id).catch(() => ({ received: [], sent: [] })),
+        loadMessages().catch(() => []),
       ])
       if (!active) return
       if (notesRes.error) setMessage('Could not load your notes.')
       else setNotes(notesRes.data)
       setReceived(surprisesRes.received)
       setSent(surprisesRes.sent)
+      setMessages(msgs)
       setIsLoading(false)
     }
     load()
     return () => { active = false }
   }, [session])
+
+  // Live chat: refresh messages whenever a new one arrives for me.
+  useEffect(() => {
+    if (!myId) return undefined
+    const unsubscribe = subscribeToMessages(myId, () => {
+      loadMessages().then(setMessages).catch(() => {})
+    })
+    return unsubscribe
+  }, [myId])
 
   const handleAuth = async (event) => {
     event.preventDefault()
@@ -160,6 +198,36 @@ function App() {
     } catch (error) { setMessage(error.message || 'Could not cancel.') }
   }
 
+  const openConversation = async (otherId) => {
+    setActiveConvo(otherId)
+    setView('messages')
+    await markConversationRead(otherId, myId)
+    setMessages((current) => current.map((m) => (m.sender_id === otherId && m.recipient_id === myId && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m)))
+  }
+
+  const startNewConversation = async (event) => {
+    event.preventDefault()
+    const name = newConvo.trim().toLowerCase()
+    if (!name) return
+    setDraft(''); setNewConvo(''); setMessage('')
+    // Open a placeholder thread; it becomes real once the first message is sent.
+    try {
+      const sentMsg = await sendMessage({ recipientUsername: name, body: draft || '👋', senderUsername: profile?.username, senderId: myId })
+      setMessages((current) => [...current, sentMsg])
+      setActiveConvo(sentMsg.recipient_id)
+    } catch (error) { setMessage(error.message || 'Could not start the conversation.') }
+  }
+
+  const sendChatMessage = async () => {
+    if (!draft.trim() || !activeThread) return
+    const body = draft.trim()
+    setDraft('')
+    try {
+      const sentMsg = await sendMessage({ recipientUsername: activeThread.username, body, senderUsername: profile?.username, senderId: myId })
+      setMessages((current) => [...current, sentMsg])
+    } catch (error) { setMessage(error.message || 'Could not send.'); setDraft(body) }
+  }
+
   if (!isSupabaseConfigured) {
     return <div className="setup-screen"><div className="setup-card"><span className="brand-mark">✦</span><h1>My Notes is ready for Supabase</h1><p>Finish the free database connection to turn on accounts and reminders.</p></div></div>
   }
@@ -199,7 +267,10 @@ function App() {
       <nav className="tabs">
         <button className={view === 'notes' ? 'tab active' : 'tab'} onClick={() => setView('notes')}>My Notes</button>
         <button className={view === 'surprises' ? 'tab active' : 'tab'} onClick={() => setView('surprises')}>
-          Surprises{todaysSurprises.length > 0 ? ` 🎉` : ''}
+          Surprises{todaysSurprises.length > 0 ? ' 🎉' : ''}
+        </button>
+        <button className={view === 'messages' ? 'tab active' : 'tab'} onClick={() => { setView('messages'); setActiveConvo(null) }}>
+          Messages{totalUnread > 0 ? <span className="badge">{totalUnread}</span> : ''}
         </button>
       </nav>
 
@@ -283,6 +354,52 @@ function App() {
               </div>
             )}
           </>
+        )}
+
+        {view === 'messages' && !activeThread && (
+          <>
+            <div className="section-head"><div><span className="eyebrow">MESSAGES</span><h2>Chat with your friends. 💬</h2></div></div>
+            <form className="editor surprise-form" onSubmit={startNewConversation}>
+              <label className="field-label">Start a chat with (their username)</label>
+              <div className="new-convo-row">
+                <input className="title-input" placeholder="@username" autoCapitalize="none" autoCorrect="off" value={newConvo} onChange={(e) => setNewConvo(e.target.value)} />
+                <button className="save-button" type="submit">Message</button>
+              </div>
+            </form>
+            <h3 className="list-title">Conversations</h3>
+            {conversations.length === 0 && <p className="muted">No conversations yet. Start one above.</p>}
+            {conversations.map((c) => (
+              <button className="convo-row" key={c.id} onClick={() => openConversation(c.id)}>
+                <div className="convo-avatar">{c.username.slice(0, 1).toUpperCase()}</div>
+                <div className="convo-main">
+                  <div className="convo-top"><strong>@{c.username}</strong><span>{formatTime(c.last.created_at)}</span></div>
+                  <div className="convo-preview">{c.last.sender_id === myId ? 'You: ' : ''}{c.last.body}</div>
+                </div>
+                {c.unread > 0 && <span className="badge">{c.unread}</span>}
+              </button>
+            ))}
+          </>
+        )}
+
+        {view === 'messages' && activeThread && (
+          <div className="chat">
+            <div className="chat-head">
+              <button className="cancel-button" onClick={() => setActiveConvo(null)}>← Back</button>
+              <strong>@{activeThread.username}</strong>
+            </div>
+            <div className="chat-thread">
+              {activeThread.messages.map((m) => (
+                <div className={m.sender_id === myId ? 'bubble mine' : 'bubble theirs'} key={m.id}>
+                  <p>{m.body}</p>
+                  <span className="bubble-time">{formatTime(m.created_at)}</span>
+                </div>
+              ))}
+            </div>
+            <form className="chat-compose" onSubmit={(e) => { e.preventDefault(); sendChatMessage() }}>
+              <input placeholder="Type a message…" value={draft} onChange={(e) => setDraft(e.target.value)} />
+              <button className="save-button" type="submit" disabled={!draft.trim()}>Send</button>
+            </form>
+          </div>
         )}
       </main>
     </div>

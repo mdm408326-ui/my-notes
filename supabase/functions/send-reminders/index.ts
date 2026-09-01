@@ -85,8 +85,33 @@ Deno.serve(async () => {
     await supabase.from('surprise_notes').update({ delivered_at: nowIso }).eq('id', s.id)
   }
 
+  // 3. New chat messages that are still unread and not yet pushed.
+  const { data: newMessages } = await supabase
+    .from('messages')
+    .select('id, body, sender_username, recipient_id')
+    .is('notified_at', null)
+    .is('read_at', null)
+
+  for (const m of newMessages ?? []) {
+    sent += await pushToUser(
+      m.recipient_id,
+      JSON.stringify({
+        title: `💬 @${m.sender_username}`,
+        body: m.body.length > 120 ? `${m.body.slice(0, 120)}…` : m.body,
+        tag: `msg-${m.id}`,
+        url: '/',
+      }),
+    )
+    await supabase.from('messages').update({ notified_at: nowIso }).eq('id', m.id)
+  }
+
   return new Response(
-    JSON.stringify({ reminders: dueNotes?.length ?? 0, surprises: dueSurprises?.length ?? 0, sent }),
+    JSON.stringify({
+      reminders: dueNotes?.length ?? 0,
+      surprises: dueSurprises?.length ?? 0,
+      messages: newMessages?.length ?? 0,
+      sent,
+    }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },
   )
 })
