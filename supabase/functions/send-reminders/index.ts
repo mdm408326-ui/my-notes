@@ -105,11 +105,32 @@ Deno.serve(async () => {
     await supabase.from('messages').update({ notified_at: nowIso }).eq('id', m.id)
   }
 
+  // 4. Countdown events that have just unlocked.
+  const { data: unlocked } = await supabase
+    .from('countdowns')
+    .select('id, title, owner_id')
+    .lte('unlock_at', nowIso)
+    .is('notified_at', null)
+
+  for (const c of unlocked ?? []) {
+    sent += await pushToUser(
+      c.owner_id,
+      JSON.stringify({
+        title: '🎉 A countdown unlocked!',
+        body: c.title || 'Open to see what was waiting.',
+        tag: `countdown-${c.id}`,
+        url: '/',
+      }),
+    )
+    await supabase.from('countdowns').update({ notified_at: nowIso }).eq('id', c.id)
+  }
+
   return new Response(
     JSON.stringify({
       reminders: dueNotes?.length ?? 0,
       surprises: dueSurprises?.length ?? 0,
       messages: newMessages?.length ?? 0,
+      countdowns: unlocked?.length ?? 0,
       sent,
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } },

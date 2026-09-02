@@ -5,11 +5,18 @@ import { enablePushNotifications, notificationPermission, pushSupported, registe
 import { loadMyProfile, signInWithUsername, signUpWithUsername } from './lib/auth'
 import { cancelSurprise, loadSurprises, sendSurprise } from './lib/surprises'
 import { loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
+import { createCountdown, deleteCountdown, loadCountdowns } from './lib/countdowns'
 
 const formatReminder = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const formatDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
 const formatTime = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const todayStr = () => new Date().toISOString().slice(0, 10)
+const pad = (n) => String(n).padStart(2, '0')
+// Breaks a millisecond gap into days/hours/minutes/seconds for the timer.
+const countdownParts = (ms) => {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -38,6 +45,14 @@ function App() {
   const [activeConvo, setActiveConvo] = useState(null) // other user's id
   const [newConvo, setNewConvo] = useState('')
   const [draft, setDraft] = useState('')
+
+  // Countdowns
+  const [countdowns, setCountdowns] = useState([])
+  const [countdownForm, setCountdownForm] = useState({ title: '', message: '', unlockAt: '' })
+  const [now, setNow] = useState(() => Date.now())
+
+  // Profile
+  const [pwd, setPwd] = useState('')
 
   // Auth form
   const [authMode, setAuthMode] = useState('login')
@@ -84,6 +99,12 @@ function App() {
     if (pushSupported()) registerServiceWorker()
   }, [])
 
+  // Tick every second so countdown timers update live.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   // Self-heal push subscription when permission is already granted.
   useEffect(() => {
     if (!session || !pushSupported() || notificationPermission() !== 'granted') return undefined
@@ -101,7 +122,7 @@ function App() {
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next)
-      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setMessages([]); setActiveConvo(null); setIsLoading(false) }
+      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setMessages([]); setCountdowns([]); setActiveConvo(null); setView('notes'); setIsLoading(false) }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -115,10 +136,11 @@ function App() {
       const myProfile = await loadMyProfile()
       if (!active) return
       setProfile(myProfile)
-      const [notesRes, surprisesRes, msgs] = await Promise.all([
+      const [notesRes, surprisesRes, msgs, cds] = await Promise.all([
         supabase.from('notes').select('*').order('created_at', { ascending: false }),
         loadSurprises(session.user.id).catch(() => ({ received: [], sent: [] })),
         loadMessages().catch(() => []),
+        loadCountdowns().catch(() => []),
       ])
       if (!active) return
       if (notesRes.error) setMessage('Could not load your notes.')
@@ -126,6 +148,7 @@ function App() {
       setReceived(surprisesRes.received)
       setSent(surprisesRes.sent)
       setMessages(msgs)
+      setCountdowns(cds)
       setIsLoading(false)
     }
     load()
@@ -228,6 +251,31 @@ function App() {
     } catch (error) { setMessage(error.message || 'Could not send.'); setDraft(body) }
   }
 
+  const createCountdownEvent = async () => {
+    setMessage('')
+    try {
+      const cd = await createCountdown(countdownForm)
+      setCountdowns((current) => [...current, cd].sort((a, b) => new Date(a.unlock_at) - new Date(b.unlock_at)))
+      setCountdownForm({ title: '', message: '', unlockAt: '' })
+      setMessage('Countdown created. The clock is ticking… ⏳')
+    } catch (error) { setMessage(error.message || 'Could not create the countdown.') }
+  }
+
+  const deleteCountdownEvent = async (id) => {
+    try {
+      await deleteCountdown(id)
+      setCountdowns((current) => current.filter((c) => c.id !== id))
+    } catch (error) { setMessage(error.message || 'Could not delete.') }
+  }
+
+  const changePassword = async (event) => {
+    event.preventDefault()
+    if (pwd.length < 6) { setMessage('Password must be at least 6 characters.'); return }
+    const { error } = await supabase.auth.updateUser({ password: pwd })
+    setPwd('')
+    setMessage(error ? (error.message || 'Could not change password.') : 'Password updated. ✅')
+  }
+
   if (!isSupabaseConfigured) {
     return <div className="setup-screen"><div className="setup-card"><span className="brand-mark">✦</span><h1>My Notes is ready for Supabase</h1><p>Finish the free database connection to turn on accounts and reminders.</p></div></div>
   }
@@ -259,13 +307,14 @@ function App() {
           {notifyState !== 'unsupported' && (notifyState === 'granted'
             ? <button className="notify-status" onClick={enableNotifications} title="Notifications are on — click to re-check this device">🔔 On</button>
             : <button className="notify-button" onClick={enableNotifications}>🔔 Enable alerts</button>)}
-          {profile && <span className="user-email">@{profile.username}</span>}
+          {profile && <button className="user-email profile-link" onClick={() => setView('profile')}>@{profile.username}</button>}
           <button className="signout-button" onClick={() => supabase.auth.signOut()}>Sign out</button>
         </div>
       </header>
 
       <nav className="tabs">
         <button className={view === 'notes' ? 'tab active' : 'tab'} onClick={() => setView('notes')}>My Notes</button>
+        <button className={view === 'countdowns' ? 'tab active' : 'tab'} onClick={() => setView('countdowns')}>Countdowns</button>
         <button className={view === 'surprises' ? 'tab active' : 'tab'} onClick={() => setView('surprises')}>
           Surprises{todaysSurprises.length > 0 ? ' 🎉' : ''}
         </button>
@@ -378,6 +427,82 @@ function App() {
                 {c.unread > 0 && <span className="badge">{c.unread}</span>}
               </button>
             ))}
+          </>
+        )}
+
+        {view === 'countdowns' && (
+          <>
+            <div className="section-head"><div><span className="eyebrow">COUNTDOWN EVENTS</span><h2>Lock a note behind a timer. ⏳</h2></div></div>
+            <div className="editor surprise-form">
+              <label className="field-label">Title</label>
+              <input className="title-input" placeholder="Our anniversary 💛" value={countdownForm.title} onChange={(e) => setCountdownForm({ ...countdownForm, title: e.target.value })} />
+              <label className="field-label">Hidden message (revealed when it unlocks)</label>
+              <textarea className="content-input" placeholder="Write the message that unlocks when the timer hits zero..." value={countdownForm.message} onChange={(e) => setCountdownForm({ ...countdownForm, message: e.target.value })} />
+              <label className="reminder-field">Unlocks at <input type="datetime-local" value={countdownForm.unlockAt} onChange={(e) => setCountdownForm({ ...countdownForm, unlockAt: e.target.value })} /></label>
+              <div className="editor-buttons"><button className="save-button" onClick={createCountdownEvent}>Start Countdown ⏳</button></div>
+            </div>
+
+            {countdowns.length === 0 && <p className="muted">No countdowns yet. Create one above — a birthday, a trip, an exam result, a surprise…</p>}
+            <div className="notes-grid">
+              {countdowns.map((c) => {
+                const remaining = new Date(c.unlock_at).getTime() - now
+                const unlocked = remaining <= 0
+                const t = countdownParts(remaining)
+                return (
+                  <div className={`note-card countdown-card${unlocked ? ' unlocked' : ''}`} key={c.id}>
+                    {unlocked ? (
+                      <>
+                        <div className="countdown-badge">🎉 Unlocked</div>
+                        <h3>{c.title || 'A note for you'}</h3>
+                        <p>{c.message}</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="countdown-badge">Something is coming…</div>
+                        <h3>{c.title || 'A locked note'}</h3>
+                        <div className="countdown-timer">
+                          <span>{pad(t.d)}</span>:<span>{pad(t.h)}</span>:<span>{pad(t.m)}</span>:<span>{pad(t.s)}</span>
+                        </div>
+                        <div className="countdown-labels"><span>days</span><span>hrs</span><span>min</span><span>sec</span></div>
+                      </>
+                    )}
+                    <div className="note-footer">
+                      <span>{unlocked ? `Unlocked ${formatReminder(c.unlock_at)}` : `Unlocks ${formatReminder(c.unlock_at)}`}</span>
+                      <button className="delete-button" onClick={() => deleteCountdownEvent(c.id)} aria-label="Delete countdown">🗑️</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {view === 'profile' && (
+          <>
+            <div className="section-head"><div><span className="eyebrow">PROFILE</span><h2>Your account</h2></div></div>
+            <div className="profile-card">
+              <div className="profile-top">
+                <div className="convo-avatar profile-avatar">{profile?.username?.slice(0, 1).toUpperCase()}</div>
+                <div>
+                  <h3>@{profile?.username}</h3>
+                  {profile?.created_at && <p className="muted">Member since {formatDate(profile.created_at.slice(0, 10))}</p>}
+                </div>
+              </div>
+              <div className="profile-stats">
+                <div><strong>{notes.length}</strong><span>Notes</span></div>
+                <div><strong>{countdowns.length}</strong><span>Countdowns</span></div>
+                <div><strong>{sent.length}</strong><span>Surprises sent</span></div>
+                <div><strong>{conversations.length}</strong><span>Chats</span></div>
+              </div>
+              <form className="profile-pass" onSubmit={changePassword}>
+                <label className="field-label">Change password</label>
+                <div className="new-convo-row">
+                  <input type="password" className="pass-input" placeholder="New password (min 6 chars)" value={pwd} onChange={(e) => setPwd(e.target.value)} />
+                  <button className="save-button" type="submit">Update</button>
+                </div>
+              </form>
+              <button className="signout-button profile-signout" onClick={() => supabase.auth.signOut()}>Sign out</button>
+            </div>
           </>
         )}
 

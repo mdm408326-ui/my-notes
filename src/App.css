@@ -360,3 +360,34 @@ body {
 .bubble-time { display: block; margin-top: 3px; font-size: 10px; opacity: 0.65; }
 .chat-compose { display: flex; gap: 10px; padding: 12px; border-top: 1px solid #efeee8; }
 .chat-compose input { flex: 1; padding: 12px 14px; border: 1px solid #deded6; border-radius: 999px; font: inherit; }
+
+/* ===== Countdowns ===== */
+.profile-link { border: 0; background: transparent; cursor: pointer; font: inherit; color: #4d2b70; font-weight: 700; }
+.countdown-card { background: linear-gradient(180deg, #2a1b4a, #191233); color: #fff; border: 0; }
+.countdown-card h3 { color: #fff; }
+.countdown-card p { color: #d9d2ee; }
+.countdown-card .note-footer { border-top-color: rgba(255,255,255,0.12); }
+.countdown-card .note-footer span { color: #b3a9d6; }
+.countdown-card.unlocked { background: linear-gradient(180deg, #4d2b70, #6d3bc4); }
+.countdown-badge { align-self: flex-start; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: #d9c9ff; margin-bottom: 10px; }
+.countdown-timer { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; font-weight: 800; font-size: clamp(26px, 6vw, 38px); color: #fff; margin: 6px 0 2px; }
+.countdown-timer span { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 6px 8px; min-width: 1.6em; text-align: center; }
+.countdown-labels { display: flex; gap: 6px; color: #b3a9d6; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.countdown-labels span { flex: 1; text-align: center; min-width: 1.6em; }
+
+/* ===== Profile ===== */
+.profile-card { background: #fff; border: 1px solid rgba(32,37,44,0.09); border-radius: 20px; padding: 26px; max-width: 560px; box-shadow: 0 12px 28px rgba(49,42,31,0.06); }
+.profile-top { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.profile-avatar { width: 60px; height: 60px; font-size: 26px; }
+.profile-top h3 { font-size: 22px; }
+.profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+.profile-stats div { background: #f7f5fb; border-radius: 14px; padding: 14px 8px; text-align: center; }
+.profile-stats strong { display: block; font-size: 22px; }
+.profile-stats span { color: #8a8d88; font-size: 12px; }
+.profile-pass { margin-bottom: 18px; }
+.pass-input { flex: 1; padding: 12px 14px; border: 1px solid #deded6; border-radius: 11px; font: inherit; }
+.profile-signout { padding: 10px 0; }
+
+@media (max-width: 600px) {
+  .profile-stats { grid-template-columns: repeat(2, 1fr); }
+}
