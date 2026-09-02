@@ -30,3 +30,6 @@ server/data/notes.json
 
 # Supabase CLI temp
 supabase/.temp/
+
+# Unrelated asset folder
+website-images/
