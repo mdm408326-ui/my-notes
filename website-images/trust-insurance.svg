@@ -1,0 +1,6 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Transit and damage insurance">
+  <rect width="120" height="120" rx="28" fill="#0B1838"/>
+  <path d="M60 26 L88 38 V60 c0 20-12 30-28 36 -16-6-28-16-28-36 V38 Z" fill="#F26522"/>
+  <path d="M60 26 L88 38 V60 c0 20-12 30-28 36 Z" fill="#0B1838" fill-opacity="0.12"/>
+  <path d="M49 60 l7 8 15-18" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

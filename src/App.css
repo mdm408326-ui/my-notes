@@ -391,3 +391,6 @@ body {
 @media (max-width: 600px) {
   .profile-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+.header-avatar { width: 38px; height: 38px; border-radius: 50%; border: 0; background: #4d2b70; color: #fff; font-weight: 800; font-size: 16px; cursor: pointer; }
+.header-avatar:hover { background: #3a1d6e; }

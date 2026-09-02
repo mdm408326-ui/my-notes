@@ -1,0 +1,28 @@
+<svg width="320" height="240" viewBox="0 0 320 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Not sure? WhatsApp us a photo">
+  <ellipse cx="160" cy="214" rx="96" ry="14" fill="#0B1838" fill-opacity="0.06"/>
+  <!-- phone -->
+  <rect x="108" y="40" width="104" height="164" rx="18" fill="#0B1838"/>
+  <rect x="118" y="58" width="84" height="118" rx="8" fill="#F7F1E6"/>
+  <circle cx="160" cy="190" r="8" fill="#3A4C6B"/>
+  <!-- incoming bubble -->
+  <rect x="126" y="70" width="52" height="26" rx="8" fill="#E3E9F1"/>
+  <rect x="132" y="78" width="34" height="4" rx="2" fill="#9DA9BC"/>
+  <rect x="132" y="86" width="24" height="4" rx="2" fill="#9DA9BC"/>
+  <!-- reply bubble (whatsapp green) -->
+  <rect x="140" y="106" width="52" height="34" rx="8" fill="#25D366"/>
+  <rect x="147" y="114" width="34" height="4" rx="2" fill="#fff"/>
+  <rect x="147" y="122" width="28" height="4" rx="2" fill="#fff"/>
+  <rect x="147" y="130" width="20" height="4" rx="2" fill="#fff"/>
+  <!-- photo attach chip -->
+  <g transform="translate(126 150)">
+    <rect width="34" height="26" rx="5" fill="#F26522"/>
+    <circle cx="11" cy="10" r="3.4" fill="#fff"/>
+    <path d="M4 22 l9-9 6 6 5-4 6 7 Z" fill="#fff"/>
+  </g>
+  <!-- floating whatsapp badge -->
+  <g transform="translate(196 150)">
+    <circle r="22" fill="#25D366"/>
+    <path d="M-8 8 c-4-5-4-12 1-16 5-4 12-3 16 2 3 4 3 9 0 13 l1 6-6-2 c-4 1-9 0-12-3z" fill="#fff"/>
+    <path d="M-4 -3 c0 5 4 9 9 9" stroke="#25D366" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
