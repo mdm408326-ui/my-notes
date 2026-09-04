@@ -468,3 +468,27 @@ body { background: #efe6d4; color: #3b3128; }
 /* Profile stats tiles */
 .profile-stats div { background: #f6efe0; }
 .profile-stats span { color: #a2917a; }
+
+/* Vintage login / setup screen */
+.setup-screen { background:
+  radial-gradient(circle at 15% 12%, #efe1c9 0, transparent 26rem),
+  radial-gradient(circle at 90% 85%, #ece6d6 0, transparent 26rem),
+  #f1ebdd; }
+.setup-card, .auth-card { background: #fffdf6; border: 1px solid #e8dcc4; box-shadow: 0 16px 42px rgba(92, 70, 40, 0.14); position: relative; overflow: hidden; }
+.setup-card p, .auth-card > p { color: #6f6353; }
+.auth-card h1 { color: #2f2822; }
+.auth-card input { border: 1px solid #e2d6bd; background: #fffef9; }
+.auth-card input:focus { outline: none; border-color: #c69a5f; }
+.auth-card .text-button { color: #9a5a2f; }
+.auth-card::after { content: ""; position: absolute; right: -10px; bottom: -14px; width: 92px; height: 132px;
+  background: url(/deco-lavender.svg) no-repeat right bottom / contain; opacity: 0.4; pointer-events: none; }
+.auth-card > * { position: relative; z-index: 1; }
+
+/* Fix: keep eyebrow above the heading (heading is inline-block for the brush) */
+.section-head > div { display: flex; flex-direction: column; align-items: flex-start; }
+.section-head .eyebrow { margin-bottom: 6px; }
+
+/* Refine: move note-card lavender to the clear upper-right, keep delete legible */
+.note-card::after { top: 14px; right: 8px; bottom: auto; width: 52px; height: 78px;
+  background: url(/deco-lavender.svg) no-repeat right top / contain; opacity: 0.3; }
+.delete-button { background: rgba(255, 253, 246, 0.7); border-radius: 8px; position: relative; z-index: 2; }
