@@ -492,3 +492,39 @@ body { background: #efe6d4; color: #3b3128; }
 .note-card::after { top: 14px; right: 8px; bottom: auto; width: 52px; height: 78px;
   background: url(/deco-lavender.svg) no-repeat right top / contain; opacity: 0.3; }
 .delete-button { background: rgba(255, 253, 246, 0.7); border-radius: 8px; position: relative; z-index: 2; }
+
+/* ============================================================
+   Urdu red accent + coral avatar + icon-only bell + new florals
+   ============================================================ */
+:root { --urdu-red: #9e2b2b; }
+
+/* Violet -> Urdu red across the app */
+.tab.active { color: var(--urdu-red); }
+.tab.active::after { background: var(--urdu-red); }
+.add-button:hover, .start-button:hover, .save-button:hover { background: var(--urdu-red); }
+.bubble.mine { background: var(--urdu-red); }
+.notify-status { color: var(--urdu-red); }
+.text-button, .signout-button, .auth-card .text-button { color: var(--urdu-red); }
+
+/* Avatars — warm coral to match the florals */
+.header-avatar, .convo-avatar, .profile-avatar { background: linear-gradient(135deg, #dd9a80, #c26e50); color: #fffdf6; }
+.header-avatar:hover { background: linear-gradient(135deg, #d68d70, #b5603f); }
+
+/* Icon-only bell toggle */
+.bell-toggle { width: 38px; height: 38px; border-radius: 50%; border: 1px solid #e2d6bd; background: #fffdf6; font-size: 17px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.bell-toggle:hover { background: #f7f0e2; }
+.bell-toggle.on { background: #eef3e6; border-color: #bcd0a6; }
+
+/* Swap florals: coral poppies on hero + login, sepia sprig on note cards */
+.urdu-hero::after { background: url(/deco-poppies.svg) no-repeat right top / contain; opacity: 0.85; width: 96px; height: 130px; right: 2px; top: -8px; }
+.auth-card::after { background: url(/deco-poppies.svg) no-repeat right bottom / contain; opacity: 0.6; width: 104px; height: 140px; }
+.note-card::after { background: url(/deco-sprig.svg) no-repeat right top / contain; opacity: 0.34; width: 46px; height: 74px; }
+
+/* Optional image slots — appear when you drop these files into public/:
+   /seal.png  (red wax seal)   /envelopes.png  (tied letters)
+   Missing files simply show nothing (safe). */
+.hero-seal { position: absolute; right: 16px; bottom: 8px; width: 52px; height: 52px;
+  background: url(/seal.png) no-repeat center / contain; }
+.empty-state { position: relative; overflow: hidden; }
+.empty-state::after { content: ""; position: absolute; right: 14px; top: 14px; width: 84px; height: 60px;
+  background: url(/envelopes.png) no-repeat center / contain; opacity: 0.5; pointer-events: none; }

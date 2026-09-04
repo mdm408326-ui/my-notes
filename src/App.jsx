@@ -282,9 +282,14 @@ function App() {
       <header className="header">
         <div className="brand"><span className="brand-mark">✦</span><div><h1>My Notes</h1><p>Notes, reminders & surprises.</p></div></div>
         <div className="header-actions">
-          {notifyState !== 'unsupported' && (notifyState === 'granted'
-            ? <button className="notify-status" onClick={enableNotifications} title="Notifications are on — click to re-check this device">🔔 On</button>
-            : <button className="notify-button" onClick={enableNotifications}>🔔 Enable alerts</button>)}
+          {notifyState !== 'unsupported' && (
+            <button
+              className={`bell-toggle${notifyState === 'granted' ? ' on' : ''}`}
+              onClick={enableNotifications}
+              title={notifyState === 'granted' ? 'Notifications on' : 'Turn on notifications'}
+              aria-label={notifyState === 'granted' ? 'Notifications on' : 'Turn on notifications'}
+            >{notifyState === 'granted' ? '🔔' : '🔕'}</button>
+          )}
           {profile && <button className="header-avatar" onClick={() => setView('profile')} title={`@${profile.username} — profile`}>{profile.username.slice(0, 1).toUpperCase()}</button>}
         </div>
       </header>
@@ -308,6 +313,7 @@ function App() {
             <div className="urdu-hero">
               <span className="urdu-word" lang="ur" dir="rtl">میرے خط</span>
               <span className="urdu-caption">mere khat — my notes</span>
+              <span className="hero-seal" aria-hidden="true"></span>
             </div>
             <div className="section-head">
               <div><span className="eyebrow">YOUR PERSONAL NOTEBOOK</span><h2>Keep the little ideas.</h2></div>
