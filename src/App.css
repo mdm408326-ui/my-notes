@@ -399,3 +399,72 @@ body {
 .urdu-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dashed #d8c3a0; }
 .urdu-word { font-family: "Noto Nastaliq Urdu", serif; direction: rtl; font-size: clamp(40px, 8vw, 72px); line-height: 2.1; font-weight: 700; color: #8a3b1e; text-shadow: 1px 1px 0 rgba(138, 59, 30, 0.12); }
 .urdu-caption { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #a67c52; font-weight: 700; }
+
+/* ============================================================
+   VINTAGE PAPER THEME  (overrides — applies to every tab)
+   ============================================================ */
+body { background: #efe6d4; color: #3b3128; }
+.app { background:
+  radial-gradient(circle at 88% 6%, #efe1c9 0, transparent 26rem),
+  radial-gradient(circle at 4% 55%, #ece6d6 0, transparent 30rem),
+  #f1ebdd; }
+
+/* Header */
+.header { background: rgba(246, 240, 228, 0.82); border-bottom: 1px solid rgba(120, 92, 52, 0.16); }
+.header p { color: #8a7a63; }
+.brand-mark { background: #2c2a2f; }
+
+/* Tabs — active gets a purple brush underline */
+.tabs { border-bottom: 1px solid #e2d7bf; }
+.tab { color: #9c8f79; }
+.tab.active { color: #4d2b70; border-bottom-color: transparent; position: relative; }
+.tab.active::after { content: ""; position: absolute; left: 0; right: 8px; bottom: -2px; height: 12px;
+  background: #4d2b70; -webkit-mask: url(/deco-brush.svg) no-repeat left center / 100% 100%; mask: url(/deco-brush.svg) no-repeat left center / 100% 100%; }
+
+/* Section headings — tan brush underline */
+.section-head h2 { position: relative; display: inline-block; color: #2f2822; }
+.section-head h2::after { content: ""; position: absolute; left: -2px; bottom: -10px; width: 108%; height: 13px;
+  background: #c69a5f; -webkit-mask: url(/deco-brush.svg) no-repeat left center / 100% 100%; mask: url(/deco-brush.svg) no-repeat left center / 100% 100%; opacity: 0.85; }
+.eyebrow { color: #9a5a2f; }
+
+/* Paper cards across all tabs */
+.note-card, .convo-row, .editor, .surprise-form, .profile-card, .chat, .reminder-strip {
+  background: #fffdf6; border: 1px solid #e8dcc4; box-shadow: 0 10px 24px rgba(92, 70, 40, 0.09); }
+.note-card p, .welcome p, .muted { color: #6f6353; }
+.note-card h3, .profile-top h3 { color: #2f2822; }
+.note-footer { border-top-color: #efe6d3; }
+.note-footer span { color: #a2917a; }
+
+/* Torn-paper bottom + faint lavender on note cards */
+.note-card { position: relative; overflow: hidden; padding-bottom: 26px; }
+.note-card::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 14px;
+  background: url(/deco-torn.svg) no-repeat bottom / 100% 14px; }
+.note-card::after { content: ""; position: absolute; right: -4px; bottom: 6px; width: 66px; height: 96px;
+  background: url(/deco-lavender.svg) no-repeat right bottom / contain; opacity: 0.42; pointer-events: none; }
+.note-card > * { position: relative; z-index: 1; }
+
+/* Reminder strip — warm, with a washi-tape accent */
+.reminder-strip { background: #fbf3e2; color: #7a5a2a; position: relative; }
+.reminder-strip::after { content: ""; position: absolute; top: -8px; right: 30px; width: 58px; height: 20px;
+  background: rgba(183, 150, 96, 0.32); transform: rotate(-6deg); border-radius: 2px; }
+
+/* Buttons — warm ink */
+.add-button, .start-button, .save-button { background: #3a2d22; }
+.add-button:hover, .start-button:hover, .save-button:hover { background: #6d3bc4; }
+
+/* Urdu hero — add a lavender sprig on the right */
+.urdu-hero { position: relative; border-bottom-color: #dcc9a4; }
+.urdu-hero::after { content: ""; position: absolute; right: 4px; top: -4px; width: 74px; height: 110px;
+  background: url(/deco-lavender.svg) no-repeat right top / contain; opacity: 0.55; pointer-events: none; }
+
+/* Convo rows + avatars keep warm paper */
+.convo-row:hover { background: #fbf6ea; }
+.convo-preview { color: #8a7c67; }
+.convo-top span { color: #a89a82; }
+
+/* Chat bubbles */
+.bubble.theirs { background: #f2ead9; color: #3b3128; }
+
+/* Profile stats tiles */
+.profile-stats div { background: #f6efe0; }
+.profile-stats span { color: #a2917a; }
