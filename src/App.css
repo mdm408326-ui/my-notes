@@ -540,3 +540,17 @@ body { background: #efe6d4; color: #3b3128; }
 @media (max-width: 560px) {
   .urdu-hero::after { width: 92px; height: 74px; opacity: 0.9; }
 }
+
+/* Vintage surprise + countdown cards (was purple) */
+.countdown-card { background: linear-gradient(160deg, #4a382c, #2b2019); }
+.countdown-card p { color: #ece0cf; }
+.countdown-card .note-footer { border-top-color: rgba(255, 255, 255, 0.14); }
+.countdown-card .note-footer span { color: #d6c2a8; }
+.countdown-card.unlocked { background: linear-gradient(160deg, #a5342b, #7c231e); }
+.countdown-badge { color: #f1ddc1; }
+.countdown-timer span { background: rgba(255, 255, 255, 0.13); }
+.countdown-labels { color: #d6c2a8; }
+
+/* Saved notes: pressed paper-flower accent on the right */
+.note-card::after { background: url(/note-flower.png) no-repeat right top / contain;
+  width: 58px; height: 82px; top: 12px; right: 8px; opacity: 0.8; }
