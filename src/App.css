@@ -394,3 +394,8 @@ body {
 
 .header-avatar { width: 38px; height: 38px; border-radius: 50%; border: 0; background: #4d2b70; color: #fff; font-weight: 800; font-size: 16px; cursor: pointer; }
 .header-avatar:hover { background: #3a1d6e; }
+
+/* ===== Urdu (Nastaliq) retro hero ===== */
+.urdu-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dashed #d8c3a0; }
+.urdu-word { font-family: "Noto Nastaliq Urdu", serif; direction: rtl; font-size: clamp(40px, 8vw, 72px); line-height: 2.1; font-weight: 700; color: #8a3b1e; text-shadow: 1px 1px 0 rgba(138, 59, 30, 0.12); }
+.urdu-caption { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #a67c52; font-weight: 700; }

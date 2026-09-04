@@ -305,6 +305,10 @@ function App() {
 
         {view === 'notes' && (
           <>
+            <div className="urdu-hero">
+              <span className="urdu-word" lang="ur" dir="rtl">میرے خط</span>
+              <span className="urdu-caption">mere khat — my notes</span>
+            </div>
             <div className="section-head">
               <div><span className="eyebrow">YOUR PERSONAL NOTEBOOK</span><h2>Keep the little ideas.</h2></div>
               <button className="add-button" onClick={() => setShowEditor(true)}>+ New Note</button>
