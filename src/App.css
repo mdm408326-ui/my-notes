@@ -528,3 +528,15 @@ body { background: #efe6d4; color: #3b3128; }
 .empty-state { position: relative; overflow: hidden; }
 .empty-state::after { content: ""; position: absolute; right: 14px; top: 14px; width: 84px; height: 60px;
   background: url(/envelopes.png) no-repeat center / contain; opacity: 0.5; pointer-events: none; }
+
+/* Wax seal as the app logo (replaces the ✦ mark) */
+.brand-mark { background: url(/seal.png) no-repeat center / contain; color: transparent; border-radius: 0; box-shadow: none; }
+
+/* Tied letters beside the Urdu title; small wax seal on the empty state */
+.hero-seal { display: none; }
+.urdu-hero::after { background: url(/envelopes.png) no-repeat right top / contain; opacity: 0.95; width: 132px; height: 104px; right: 0; top: 2px; }
+.empty-state::after { background: url(/seal.png) no-repeat center / contain; width: 66px; height: 66px; right: 20px; top: 20px; opacity: 0.9; }
+
+@media (max-width: 560px) {
+  .urdu-hero::after { width: 92px; height: 74px; opacity: 0.9; }
+}
