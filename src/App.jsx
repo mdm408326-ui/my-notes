@@ -5,6 +5,7 @@ import { enablePushNotifications, notificationPermission, pushSupported, registe
 import { loadMyProfile, signInWithUsername, signUpWithUsername } from './lib/auth'
 import { cancelSurprise, loadSurprises, sendSurprise, updateSurprise } from './lib/surprises'
 import { deleteMessage, editMessage, loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
+import { randomSher } from './lib/shers'
 
 const formatReminder = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const formatDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
@@ -81,6 +82,7 @@ function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   const myId = session?.user?.id
+  const sher = useMemo(() => randomSher(), [])
   const upcomingNotes = useMemo(() => notes.filter((n) => n.reminder_at && new Date(n.reminder_at) > new Date()).sort((a, b) => new Date(a.reminder_at) - new Date(b.reminder_at)), [notes])
   const todaysSurprises = useMemo(() => received.filter((s) => s.deliver_on === todayStr()), [received])
 
@@ -326,6 +328,7 @@ function App() {
   if (!session) {
     return (
       <div className="setup-screen">
+        <div className="login-poster" aria-hidden="true"></div>
         <form className="auth-card" onSubmit={handleAuth}>
           <span className="brand-mark">✦</span>
           <h1>{authMode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
@@ -380,6 +383,12 @@ function App() {
               <span className="urdu-caption">mere khat — my notes</span>
               <span className="hero-seal" aria-hidden="true"></span>
             </div>
+            <section className="sher-card">
+              <span className="sher-mark">؎</span>
+              <div className="sher-ur" lang="ur" dir="rtl">{sher.ur.map((line) => <span key={line}>{line}</span>)}</div>
+              <div className="sher-tr">{sher.tr.map((line) => <span key={line}>{line}</span>)}</div>
+              <div className="sher-poet">— {sher.poet}</div>
+            </section>
             <div className="section-head">
               <div><span className="eyebrow">YOUR PERSONAL NOTEBOOK</span><h2>Keep the little ideas.</h2></div>
               <button className="add-button" onClick={() => setShowEditor(true)}>+ New Note</button>
@@ -394,7 +403,7 @@ function App() {
               </div>
             )}
             {isLoading && <div className="empty-state"><p>Loading…</p></div>}
-            {!isLoading && !showEditor && notes.length === 0 && <div className="empty-state"><div className="note-icon">📝</div><h2>No notes yet</h2><p>Create your first note and start writing.</p><button className="start-button" onClick={() => setShowEditor(true)}>Create Your First Note</button></div>}
+            {!isLoading && !showEditor && notes.length === 0 && <div className="empty-state"><img className="typewriter-img" src="/typewriter.png" alt="" /><h2>No notes yet</h2><p>Collect your beautiful moments — start writing.</p><button className="start-button" onClick={() => setShowEditor(true)}>Create Your First Note</button></div>}
             {!isLoading && notes.length > 0 && (
               <div className="notes-grid">
                 {notes.map((note) => (
