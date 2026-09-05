@@ -17,6 +17,17 @@ const countdownParts = (ms) => {
   return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }
 }
 
+const CalendarIcon = () => (
+  <svg className="ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4.5" width="18" height="16.5" rx="2.5" /><path d="M3 9h18M8 2.5v4M16 2.5v4" />
+  </svg>
+)
+const TrashIcon = () => (
+  <svg className="ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
+  </svg>
+)
+
 function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -336,8 +347,8 @@ function App() {
                   <div className="note-card" key={note.id}>
                     <h3>{note.title}</h3><p>{note.content}</p>
                     <div className="note-footer">
-                      <span>{note.reminder_at ? `⏰ ${formatReminder(note.reminder_at)}` : new Date(note.created_at).toLocaleDateString()}</span>
-                      <button className="delete-button" onClick={() => deleteNote(note.id)} aria-label={`Delete ${note.title}`}>🗑️</button>
+                      <span className="date-label">{note.reminder_at ? <>⏰ {formatReminder(note.reminder_at)}</> : <><CalendarIcon /> {new Date(note.created_at).toLocaleDateString()}</>}</span>
+                      <button className="delete-button" onClick={() => deleteNote(note.id)} aria-label={`Delete ${note.title}`}><TrashIcon /></button>
                     </div>
                   </div>
                 ))}
@@ -402,7 +413,7 @@ function App() {
                     <h3>{s.title || 'Untitled surprise'}</h3><p>{s.message}</p>
                     <div className="note-footer">
                       <span>{s.delivered_at ? '✅ Delivered' : '⏳ Scheduled'} · {formatDate(s.deliver_on)}</span>
-                      {!s.delivered_at && <button className="delete-button" onClick={() => cancelSurpriseNote(s.id)} aria-label="Cancel surprise">🗑️</button>}
+                      {!s.delivered_at && <button className="delete-button" onClick={() => cancelSurpriseNote(s.id)} aria-label="Cancel surprise"><TrashIcon /></button>}
                     </div>
                   </div>
                 ))}

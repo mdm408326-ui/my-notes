@@ -554,3 +554,11 @@ body { background: #efe6d4; color: #3b3128; }
 /* Saved notes: pressed paper-flower accent on the right */
 .note-card::after { background: url(/note-flower.png) no-repeat right top / contain;
   width: 58px; height: 82px; top: 12px; right: 8px; opacity: 0.8; }
+
+/* Line icons in card footers (calendar + trash) */
+.date-label { display: inline-flex; align-items: center; gap: 6px; }
+.date-label .ico { color: #b08a5e; flex: none; }
+.delete-button { display: inline-grid; place-items: center; color: #a88c6c; background: transparent; padding: 4px; }
+.delete-button:hover { color: var(--urdu-red); transform: none; background: transparent; }
+.delete-button .ico { display: block; }
+.countdown-card .date-label .ico { color: #cbb595; }
