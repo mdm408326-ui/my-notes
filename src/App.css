@@ -562,3 +562,13 @@ body { background: #efe6d4; color: #3b3128; }
 .delete-button:hover { color: var(--urdu-red); transform: none; background: transparent; }
 .delete-button .ico { display: block; }
 .countdown-card .date-label .ico { color: #cbb595; }
+
+/* Edit/delete action groups */
+.card-actions { display: inline-flex; gap: 2px; align-items: center; }
+.bubble-row { display: flex; flex-direction: column; max-width: 80%; }
+.bubble-row.mine { align-self: flex-end; align-items: flex-end; }
+.bubble-row:not(.mine) { align-self: flex-start; align-items: flex-start; }
+.bubble-row .bubble { max-width: 100%; }
+.bubble-actions { display: flex; gap: 4px; margin-top: 3px; }
+.bubble-actions .delete-button { padding: 2px; color: #b39a86; }
+.bubble-actions .ico { width: 13px; height: 13px; }

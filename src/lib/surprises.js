@@ -23,12 +23,24 @@ export async function sendSurprise({ recipientUsername, title, message, deliverO
 
   const { error } = await supabase.from('surprise_notes').insert({
     recipient_id: recipient.id,
+    recipient_username: recipient.username,
     sender_username: senderUsername,
     title: title.trim(),
     message: message.trim(),
     deliver_on: deliverOn,
   })
   if (error) throw new Error('Could not schedule the surprise. Please try again.')
+}
+
+// Edit an undelivered surprise (title/message/date only; recipient unchanged).
+export async function updateSurprise({ id, title, message, deliverOn }) {
+  if (!deliverOn) throw new Error('Pick the date to deliver it on.')
+  if (!title.trim() && !message.trim()) throw new Error('Write a message for your surprise.')
+  const { error } = await supabase
+    .from('surprise_notes')
+    .update({ title: title.trim(), message: message.trim(), deliver_on: deliverOn })
+    .eq('id', id)
+  if (error) throw new Error('Could not update the surprise.')
 }
 
 // Returns { received, sent }. RLS makes sure recipients only get delivered ones.

@@ -33,6 +33,23 @@ export async function loadMessages() {
   return data || []
 }
 
+export async function editMessage(id, body) {
+  if (!body.trim()) throw new Error('Message can’t be empty.')
+  const { data, error } = await supabase
+    .from('messages')
+    .update({ body: body.trim() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw new Error('Could not edit the message.')
+  return data
+}
+
+export async function deleteMessage(id) {
+  const { error } = await supabase.from('messages').delete().eq('id', id)
+  if (error) throw new Error('Could not delete the message.')
+}
+
 // Marks every message from `otherId` to me as read.
 export async function markConversationRead(otherId, myId) {
   await supabase

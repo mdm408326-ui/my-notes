@@ -3,8 +3,8 @@ import './App.css'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { enablePushNotifications, notificationPermission, pushSupported, registerServiceWorker } from './lib/push'
 import { loadMyProfile, signInWithUsername, signUpWithUsername } from './lib/auth'
-import { cancelSurprise, loadSurprises, sendSurprise } from './lib/surprises'
-import { loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
+import { cancelSurprise, loadSurprises, sendSurprise, updateSurprise } from './lib/surprises'
+import { deleteMessage, editMessage, loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
 
 const formatReminder = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const formatDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
@@ -27,6 +27,16 @@ const TrashIcon = () => (
     <path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" />
   </svg>
 )
+const PencilIcon = () => (
+  <svg className="ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14.5 5.5l4 4M4 20l1-4L16 5a2.1 2.1 0 013 3L8 19l-4 1z" />
+  </svg>
+)
+// ISO timestamp -> value for a <input type="datetime-local"> in local time.
+const toLocalInput = (iso) => {
+  const d = new Date(iso)
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -43,18 +53,21 @@ function App() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [reminderAt, setReminderAt] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState(null)
 
   // Surprises
   const [received, setReceived] = useState([])
   const [sent, setSent] = useState([])
   const [surprise, setSurprise] = useState({ to: '', title: '', message: '', deliverOn: '' })
   const [isSending, setIsSending] = useState(false)
+  const [editingSurpriseId, setEditingSurpriseId] = useState(null)
 
   // Messages
   const [messages, setMessages] = useState([])
   const [activeConvo, setActiveConvo] = useState(null) // other user's id
   const [newConvo, setNewConvo] = useState('')
   const [draft, setDraft] = useState('')
+  const [editingMessageId, setEditingMessageId] = useState(null)
 
   // Live tick (for surprise countdowns)
   const [now, setNow] = useState(() => Date.now())
@@ -88,7 +101,11 @@ function App() {
   }, [messages, myId])
   const totalUnread = useMemo(() => conversations.reduce((sum, c) => sum + c.unread, 0), [conversations])
   const activeThread = useMemo(() => conversations.find((c) => c.id === activeConvo) || null, [conversations, activeConvo])
-  const resetEditor = () => { setTitle(''); setContent(''); setReminderAt(''); setShowEditor(false) }
+  const resetEditor = () => { setTitle(''); setContent(''); setReminderAt(''); setShowEditor(false); setEditingNoteId(null) }
+  const startEditNote = (note) => {
+    setEditingNoteId(note.id); setTitle(note.title); setContent(note.content)
+    setReminderAt(note.reminder_at ? toLocalInput(note.reminder_at) : ''); setShowEditor(true); setMessage('')
+  }
 
   const enableNotifications = async () => {
     try {
@@ -187,10 +204,18 @@ function App() {
   const saveNote = async () => {
     if (!title.trim() && !content.trim()) { setMessage('Write a title or a note before saving.'); return }
     setIsSaving(true)
+    const fields = { title: title.trim() || 'Untitled note', content: content.trim(), reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null }
     try {
-      const { data, error } = await supabase.from('notes').insert({ title: title.trim() || 'Untitled note', content: content.trim(), reminder_at: reminderAt ? new Date(reminderAt).toISOString() : null }).select().single()
-      if (error) throw error
-      setNotes((current) => [data, ...current]); resetEditor(); setMessage('Note saved.')
+      if (editingNoteId) {
+        // Re-arm the reminder so an edited time can fire again.
+        const { data, error } = await supabase.from('notes').update({ ...fields, notified_at: null }).eq('id', editingNoteId).select().single()
+        if (error) throw error
+        setNotes((current) => current.map((n) => (n.id === editingNoteId ? data : n))); resetEditor(); setMessage('Note updated.')
+      } else {
+        const { data, error } = await supabase.from('notes').insert(fields).select().single()
+        if (error) throw error
+        setNotes((current) => [data, ...current]); resetEditor(); setMessage('Note saved.')
+      }
       if (reminderAt && pushSupported() && notifyState !== 'granted') await enableNotifications()
     } catch (error) { setMessage(error.message || 'Could not save the note.') } finally { setIsSaving(false) }
   }
@@ -201,28 +226,42 @@ function App() {
     else { setNotes((current) => current.filter((n) => n.id !== id)); setMessage('Note deleted.') }
   }
 
+  const resetSurpriseForm = () => { setSurprise({ to: '', title: '', message: '', deliverOn: '' }); setEditingSurpriseId(null) }
+  const startEditSurprise = (s) => {
+    setEditingSurpriseId(s.id)
+    setSurprise({ to: s.recipient_username || '', title: s.title, message: s.message, deliverOn: s.deliver_on })
+    setMessage('')
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const sendSurpriseNote = async () => {
     setIsSending(true); setMessage('')
     try {
-      await sendSurprise({
-        recipientUsername: surprise.to,
-        title: surprise.title,
-        message: surprise.message,
-        deliverOn: surprise.deliverOn,
-        senderUsername: profile?.username,
-        senderId: session.user.id,
-      })
+      if (editingSurpriseId) {
+        await updateSurprise({ id: editingSurpriseId, title: surprise.title, message: surprise.message, deliverOn: surprise.deliverOn })
+        setMessage('Surprise updated. 🎁')
+      } else {
+        await sendSurprise({
+          recipientUsername: surprise.to,
+          title: surprise.title,
+          message: surprise.message,
+          deliverOn: surprise.deliverOn,
+          senderUsername: profile?.username,
+          senderId: session.user.id,
+        })
+        setMessage(`Your surprise for @${surprise.to.trim().toLowerCase()} is scheduled for ${formatDate(surprise.deliverOn)}. 🎁`)
+      }
       const refreshed = await loadSurprises(session.user.id)
       setReceived(refreshed.received); setSent(refreshed.sent)
-      setSurprise({ to: '', title: '', message: '', deliverOn: '' })
-      setMessage(`Your surprise for @${surprise.to.trim().toLowerCase()} is scheduled for ${formatDate(surprise.deliverOn)}. 🎁`)
-    } catch (error) { setMessage(error.message || 'Could not send the surprise.') } finally { setIsSending(false) }
+      resetSurpriseForm()
+    } catch (error) { setMessage(error.message || 'Could not save the surprise.') } finally { setIsSending(false) }
   }
 
   const cancelSurpriseNote = async (id) => {
     try {
       await cancelSurprise(id)
       setSent((current) => current.filter((s) => s.id !== id))
+      if (editingSurpriseId === id) resetSurpriseForm()
       setMessage('Surprise cancelled.')
     } catch (error) { setMessage(error.message || 'Could not cancel.') }
   }
@@ -252,9 +291,24 @@ function App() {
     const body = draft.trim()
     setDraft('')
     try {
-      const sentMsg = await sendMessage({ recipientUsername: activeThread.username, body, senderUsername: profile?.username, senderId: myId })
-      setMessages((current) => [...current, sentMsg])
+      if (editingMessageId) {
+        const updated = await editMessage(editingMessageId, body)
+        setMessages((current) => current.map((m) => (m.id === editingMessageId ? updated : m)))
+        setEditingMessageId(null)
+      } else {
+        const sentMsg = await sendMessage({ recipientUsername: activeThread.username, body, senderUsername: profile?.username, senderId: myId })
+        setMessages((current) => [...current, sentMsg])
+      }
     } catch (error) { setMessage(error.message || 'Could not send.'); setDraft(body) }
+  }
+
+  const startEditMessage = (m) => { setEditingMessageId(m.id); setDraft(m.body) }
+  const deleteChatMessage = async (id) => {
+    if (editingMessageId === id) { setEditingMessageId(null); setDraft('') }
+    try {
+      await deleteMessage(id)
+      setMessages((current) => current.filter((m) => m.id !== id))
+    } catch (error) { setMessage(error.message || 'Could not delete.') }
   }
 
   const changePassword = async (event) => {
@@ -336,7 +390,7 @@ function App() {
                 <input className="title-input" placeholder="Note title..." value={title} onChange={(e) => setTitle(e.target.value)} />
                 <textarea className="content-input" placeholder="Start writing your note..." value={content} onChange={(e) => setContent(e.target.value)} />
                 <label className="reminder-field">Remind me at <input type="datetime-local" value={reminderAt} onChange={(e) => setReminderAt(e.target.value)} /></label>
-                <div className="editor-buttons"><button className="cancel-button" onClick={resetEditor}>Cancel</button><button className="save-button" onClick={saveNote} disabled={isSaving}>{isSaving ? 'Saving…' : 'Save Note'}</button></div>
+                <div className="editor-buttons"><button className="cancel-button" onClick={resetEditor}>Cancel</button><button className="save-button" onClick={saveNote} disabled={isSaving}>{isSaving ? 'Saving…' : editingNoteId ? 'Update Note' : 'Save Note'}</button></div>
               </div>
             )}
             {isLoading && <div className="empty-state"><p>Loading…</p></div>}
@@ -348,7 +402,10 @@ function App() {
                     <h3>{note.title}</h3><p>{note.content}</p>
                     <div className="note-footer">
                       <span className="date-label">{note.reminder_at ? <>⏰ {formatReminder(note.reminder_at)}</> : <><CalendarIcon /> {new Date(note.created_at).toLocaleDateString()}</>}</span>
-                      <button className="delete-button" onClick={() => deleteNote(note.id)} aria-label={`Delete ${note.title}`}><TrashIcon /></button>
+                      <span className="card-actions">
+                        <button className="delete-button" onClick={() => startEditNote(note)} aria-label={`Edit ${note.title}`}><PencilIcon /></button>
+                        <button className="delete-button" onClick={() => deleteNote(note.id)} aria-label={`Delete ${note.title}`}><TrashIcon /></button>
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -363,13 +420,16 @@ function App() {
 
             <div className="editor surprise-form">
               <label className="field-label">To (their username)</label>
-              <input className="title-input" placeholder="@username" autoCapitalize="none" autoCorrect="off" value={surprise.to} onChange={(e) => setSurprise({ ...surprise, to: e.target.value })} />
+              <input className="title-input" placeholder="@username" autoCapitalize="none" autoCorrect="off" value={surprise.to} disabled={Boolean(editingSurpriseId)} onChange={(e) => setSurprise({ ...surprise, to: e.target.value })} />
               <label className="field-label">Title</label>
               <input className="title-input" placeholder="Happy Birthday! 🎉" value={surprise.title} onChange={(e) => setSurprise({ ...surprise, title: e.target.value })} />
               <label className="field-label">Message</label>
               <textarea className="content-input" placeholder="Write your surprise message..." value={surprise.message} onChange={(e) => setSurprise({ ...surprise, message: e.target.value })} />
               <label className="reminder-field">Deliver on <input type="date" min={todayStr()} value={surprise.deliverOn} onChange={(e) => setSurprise({ ...surprise, deliverOn: e.target.value })} /></label>
-              <div className="editor-buttons"><button className="save-button" onClick={sendSurpriseNote} disabled={isSending}>{isSending ? 'Scheduling…' : 'Schedule Surprise 🎁'}</button></div>
+              <div className="editor-buttons">
+                {editingSurpriseId && <button className="cancel-button" onClick={resetSurpriseForm}>Cancel</button>}
+                <button className="save-button" onClick={sendSurpriseNote} disabled={isSending}>{isSending ? 'Saving…' : editingSurpriseId ? 'Update Surprise' : 'Schedule Surprise 🎁'}</button>
+              </div>
             </div>
 
             <h3 className="list-title">Surprises for you</h3>
@@ -412,8 +472,13 @@ function App() {
                   <div className="note-card" key={s.id}>
                     <h3>{s.title || 'Untitled surprise'}</h3><p>{s.message}</p>
                     <div className="note-footer">
-                      <span>{s.delivered_at ? '✅ Delivered' : '⏳ Scheduled'} · {formatDate(s.deliver_on)}</span>
-                      {!s.delivered_at && <button className="delete-button" onClick={() => cancelSurpriseNote(s.id)} aria-label="Cancel surprise"><TrashIcon /></button>}
+                      <span className="date-label">{s.delivered_at ? '✅ Delivered' : '⏳ Scheduled'} · {formatDate(s.deliver_on)}</span>
+                      {!s.delivered_at && (
+                        <span className="card-actions">
+                          <button className="delete-button" onClick={() => startEditSurprise(s)} aria-label="Edit surprise"><PencilIcon /></button>
+                          <button className="delete-button" onClick={() => cancelSurpriseNote(s.id)} aria-label="Cancel surprise"><TrashIcon /></button>
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -484,15 +549,24 @@ function App() {
             </div>
             <div className="chat-thread">
               {activeThread.messages.map((m) => (
-                <div className={m.sender_id === myId ? 'bubble mine' : 'bubble theirs'} key={m.id}>
-                  <p>{m.body}</p>
-                  <span className="bubble-time">{formatTime(m.created_at)}</span>
+                <div className={m.sender_id === myId ? 'bubble-row mine' : 'bubble-row'} key={m.id}>
+                  <div className={m.sender_id === myId ? 'bubble mine' : 'bubble theirs'}>
+                    <p>{m.body}</p>
+                    <span className="bubble-time">{formatTime(m.created_at)}</span>
+                  </div>
+                  {m.sender_id === myId && (
+                    <div className="bubble-actions">
+                      <button className="delete-button" onClick={() => startEditMessage(m)} aria-label="Edit message"><PencilIcon /></button>
+                      <button className="delete-button" onClick={() => deleteChatMessage(m.id)} aria-label="Delete message"><TrashIcon /></button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             <form className="chat-compose" onSubmit={(e) => { e.preventDefault(); sendChatMessage() }}>
-              <input placeholder="Type a message…" value={draft} onChange={(e) => setDraft(e.target.value)} />
-              <button className="save-button" type="submit" disabled={!draft.trim()}>Send</button>
+              <input placeholder={editingMessageId ? 'Edit your message…' : 'Type a message…'} value={draft} onChange={(e) => setDraft(e.target.value)} />
+              {editingMessageId && <button type="button" className="cancel-button" onClick={() => { setEditingMessageId(null); setDraft('') }}>Cancel</button>}
+              <button className="save-button" type="submit" disabled={!draft.trim()}>{editingMessageId ? 'Update' : 'Send'}</button>
             </form>
           </div>
         )}
