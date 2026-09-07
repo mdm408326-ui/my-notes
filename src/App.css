@@ -638,10 +638,6 @@ body { background: #efe6d4; color: #3b3128; }
 .poster-sub { color: #3b3128; }
 .poster-labels { color: #b6231d; }
 
-/* Inky brush underline under the active tab */
-.tab.active::after { height: 16px; bottom: -6px;
-  -webkit-mask: url(/brush-stroke.png) no-repeat center / 100% 100%; mask: url(/brush-stroke.png) no-repeat center / 100% 100%; }
-
 /* Shayri page */
 .shayri-cat { margin-bottom: 26px; }
 .cat-ur { font-family: "Noto Nastaliq Urdu", serif; color: #9e2b2b; margin-right: 8px; font-size: 20px; }
