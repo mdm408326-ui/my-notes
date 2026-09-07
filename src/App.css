@@ -637,3 +637,16 @@ body { background: #efe6d4; color: #3b3128; }
 .poster-title { color: #b6231d; text-shadow: 2px 2px 0 rgba(120, 20, 15, 0.14); }
 .poster-sub { color: #3b3128; }
 .poster-labels { color: #b6231d; }
+
+/* Inky brush underline under the active tab */
+.tab.active::after { height: 16px; bottom: -6px;
+  -webkit-mask: url(/brush-stroke.png) no-repeat center / 100% 100%; mask: url(/brush-stroke.png) no-repeat center / 100% 100%; }
+
+/* Shayri page */
+.shayri-cat { margin-bottom: 26px; }
+.cat-ur { font-family: "Noto Nastaliq Urdu", serif; color: #9e2b2b; margin-right: 8px; font-size: 20px; }
+.shayri-cat .sher-card { margin-bottom: 14px; }
+
+/* Slide transition between pages */
+.view-slide { animation: viewSlide 0.28s ease both; }
+@keyframes viewSlide { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }

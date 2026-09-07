@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { enablePushNotifications, notificationPermission, pushSupported, registerServiceWorker } from './lib/push'
@@ -6,6 +6,7 @@ import { loadMyProfile, signInWithUsername, signUpWithUsername } from './lib/aut
 import { cancelSurprise, loadSurprises, sendSurprise, updateSurprise } from './lib/surprises'
 import { deleteMessage, editMessage, loadMessages, markConversationRead, sendMessage, subscribeToMessages } from './lib/messages'
 import { randomSher } from './lib/shers'
+import { shayari, shayariCategories } from './lib/shayari'
 
 const formatReminder = (value) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 const formatDate = (value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
@@ -82,6 +83,21 @@ function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   const myId = session?.user?.id
+  const swipeViews = ['home', 'notes', 'surprises', 'shayri', 'messages']
+  const touchStart = useRef(null)
+  const onTouchStart = (e) => { const t = e.touches[0]; touchStart.current = { x: t.clientX, y: t.clientY } }
+  const onTouchEnd = (e) => {
+    if (!touchStart.current || activeConvo) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - touchStart.current.x
+    const dy = t.clientY - touchStart.current.y
+    touchStart.current = null
+    if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+    const idx = swipeViews.indexOf(view)
+    if (idx < 0) return
+    if (dx < 0 && idx < swipeViews.length - 1) setView(swipeViews[idx + 1])
+    else if (dx > 0 && idx > 0) setView(swipeViews[idx - 1])
+  }
   const sher = useMemo(() => randomSher(), [])
   const sher2 = useMemo(() => randomSher(), [])
   const upcomingNotes = useMemo(() => notes.filter((n) => n.reminder_at && new Date(n.reminder_at) > new Date()).sort((a, b) => new Date(a.reminder_at) - new Date(b.reminder_at)), [notes])
@@ -347,7 +363,7 @@ function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <header className="header">
         <div className="brand"><span className="brand-mark">✦</span><div><h1>My Notes</h1><p>Notes, reminders & surprises.</p></div></div>
         <div className="header-actions">
@@ -369,19 +385,18 @@ function App() {
         <button className={view === 'surprises' ? 'tab active' : 'tab'} onClick={() => setView('surprises')}>
           Surprises{todaysSurprises.length > 0 ? ' 🎉' : ''}
         </button>
+        <button className={view === 'shayri' ? 'tab active' : 'tab'} onClick={() => setView('shayri')}>Shayri</button>
         <button className={view === 'messages' ? 'tab active' : 'tab'} onClick={() => { setView('messages'); setActiveConvo(null) }}>
           Messages{totalUnread > 0 ? <span className="badge">{totalUnread}</span> : ''}
         </button>
-        <button className={view === 'profile' ? 'tab active' : 'tab'} onClick={() => setView('profile')}>Profile</button>
       </nav>
 
       {view === 'home' && (
-        <div className="home">
+        <div className="home view-slide">
           <section className="poster-hero">
             <div className="poster-labels"><span>EST</span><span>MY NOTES</span><span>2026</span></div>
             <div className="poster-sun" aria-hidden="true"></div>
             <h1 className="poster-title" lang="ur" dir="rtl">میرے خط</h1>
-            <p className="poster-sub">retro notes · reminders · shayari</p>
             <button className="poster-cta" onClick={() => setView('notes')}>Open My Notes →</button>
           </section>
 
@@ -410,7 +425,7 @@ function App() {
         </div>
       )}
 
-      <main className="content" hidden={view === 'home'}>
+      <main className="content view-slide" hidden={view === 'home'} key={view}>
         {message && <p className="message" role="status">{message}</p>}
 
         {view === 'notes' && (
@@ -533,6 +548,23 @@ function App() {
           </>
         )}
 
+        {view === 'shayri' && (
+          <>
+            <div className="section-head"><div><span className="eyebrow">SHAYRI</span><h2>A little book of couplets.</h2></div></div>
+            {shayariCategories.map((cat) => (
+              <div className="shayri-cat" key={cat.key}>
+                <h3 className="list-title">{cat.key} <span className="cat-ur" lang="ur" dir="rtl">{cat.ur}</span></h3>
+                {shayari.filter((s) => s.category === cat.key).map((s, i) => (
+                  <section className="sher-card" key={i}>
+                    <span className="sher-mark">؎</span>
+                    <div className="sher-ur" lang="ur" dir="rtl">{s.ur.map((line) => <span key={line}>{line}</span>)}</div>
+                  </section>
+                ))}
+              </div>
+            ))}
+          </>
+        )}
+
         {view === 'messages' && !activeThread && (
           <>
             <div className="section-head"><div><span className="eyebrow">MESSAGES</span><h2>Chat with your friends. 💬</h2></div></div>
@@ -560,7 +592,6 @@ function App() {
 
         {view === 'profile' && (
           <>
-            <div className="section-head"><div><span className="eyebrow">PROFILE</span><h2>Your account</h2></div></div>
             <div className="profile-card">
               <div className="profile-top">
                 <div className="convo-avatar profile-avatar">{profile?.username?.slice(0, 1).toUpperCase()}</div>
