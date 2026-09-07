@@ -44,7 +44,7 @@ function App() {
   const [profile, setProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured)
   const [message, setMessage] = useState('')
-  const [view, setView] = useState('notes')
+  const [view, setView] = useState('home')
   const [notifyState, setNotifyState] = useState(pushSupported() ? notificationPermission() : 'unsupported')
 
   // Notes
@@ -83,6 +83,7 @@ function App() {
 
   const myId = session?.user?.id
   const sher = useMemo(() => randomSher(), [])
+  const sher2 = useMemo(() => randomSher(), [])
   const upcomingNotes = useMemo(() => notes.filter((n) => n.reminder_at && new Date(n.reminder_at) > new Date()).sort((a, b) => new Date(a.reminder_at) - new Date(b.reminder_at)), [notes])
   const todaysSurprises = useMemo(() => received.filter((s) => s.deliver_on === todayStr()), [received])
 
@@ -149,7 +150,7 @@ function App() {
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next)
-      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setMessages([]); setActiveConvo(null); setView('notes'); setIsLoading(false) }
+      if (!next) { setProfile(null); setNotes([]); setReceived([]); setSent([]); setMessages([]); setActiveConvo(null); setView('home'); setIsLoading(false) }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -363,6 +364,7 @@ function App() {
       </header>
 
       <nav className="tabs">
+        <button className={view === 'home' ? 'tab active' : 'tab'} onClick={() => setView('home')}>Home</button>
         <button className={view === 'notes' ? 'tab active' : 'tab'} onClick={() => setView('notes')}>My Notes</button>
         <button className={view === 'surprises' ? 'tab active' : 'tab'} onClick={() => setView('surprises')}>
           Surprises{todaysSurprises.length > 0 ? ' 🎉' : ''}
@@ -373,7 +375,42 @@ function App() {
         <button className={view === 'profile' ? 'tab active' : 'tab'} onClick={() => setView('profile')}>Profile</button>
       </nav>
 
-      <main className="content">
+      {view === 'home' && (
+        <div className="home">
+          <section className="poster-hero">
+            <div className="poster-labels"><span>EST</span><span>MY NOTES</span><span>2026</span></div>
+            <div className="poster-sun" aria-hidden="true"></div>
+            <h1 className="poster-title" lang="ur" dir="rtl">میرے خط</h1>
+            <p className="poster-sub">retro notes · reminders · shayari</p>
+            <button className="poster-cta" onClick={() => setView('notes')}>Open My Notes →</button>
+          </section>
+
+          <section className="home-section">
+            <span className="eyebrow">ABOUT US</span>
+            <h2 className="home-h2">A quiet corner for your words.</h2>
+            <div className="about-cols">
+              <p><strong>My Notes</strong> is a calm, retro place to keep the little things — jot a thought, set a reminder that reaches your phone, and return to it whenever you need it.</p>
+              <p>Send a friend a <strong>surprise</strong> that unlocks on their birthday, or trade <strong>messages</strong> in real time. Everyday jottings, wrapped in ink, paper, and a little Urdu poetry.</p>
+            </div>
+          </section>
+
+          <section className="home-section shayri-block">
+            <span className="eyebrow">SHAYRI</span>
+            <h2 className="home-h2">Words worth keeping.</h2>
+            {[sher, sher2].map((s, i) => (
+              <section className="sher-card" key={i}>
+                <span className="sher-mark">؎</span>
+                <div className="sher-ur" lang="ur" dir="rtl">{s.ur.map((line) => <span key={line}>{line}</span>)}</div>
+                <div className="sher-tr">{s.tr.map((line) => <span key={line}>{line}</span>)}</div>
+                <div className="sher-poet">— {s.poet}</div>
+              </section>
+            ))}
+            <div className="home-cta-row"><button className="poster-cta dark" onClick={() => setView('notes')}>Start writing →</button></div>
+          </section>
+        </div>
+      )}
+
+      <main className="content" hidden={view === 'home'}>
         {message && <p className="message" role="status">{message}</p>}
 
         {view === 'notes' && (
