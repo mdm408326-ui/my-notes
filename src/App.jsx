@@ -378,6 +378,7 @@ function App() {
       {view === 'home' && (
         <div className="home">
           <section className="poster-hero">
+            <div className="poster-bg" aria-hidden="true"></div>
             <div className="poster-labels"><span>EST</span><span>MY NOTES</span><span>2026</span></div>
             <div className="poster-sun" aria-hidden="true"></div>
             <h1 className="poster-title" lang="ur" dir="rtl">میرے خط</h1>
